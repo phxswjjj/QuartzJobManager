@@ -102,6 +102,59 @@ namespace QuartzJobManager
         private void Form1_Load(object sender, EventArgs e)
         {
             this.Scheduler.Start();
+
+            RefreshToggleSchedulerMenuItem();
+        }
+
+        private void RefreshToggleSchedulerMenuItem()
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new MethodInvoker(RefreshToggleSchedulerMenuItem));
+                return;
+            }
+
+            var scheduler = this.Scheduler;
+            if (scheduler.InStandbyMode)
+                tsmToggleScheduler.Text = "Start";
+            else
+                tsmToggleScheduler.Text = "Stop";
+
+            tsmToggleScheduler.Enabled = true;
+        }
+
+        private void tsmToggleScheduler_Click(object sender, EventArgs e)
+        {
+            tsmToggleScheduler.Enabled = false;
+
+            var scheduler = this.Scheduler;
+            if (scheduler.InStandbyMode)
+                tsmToggleScheduler.Text = "Starting...";
+            else
+                tsmToggleScheduler.Text = "Stopping...";
+
+            Task.Run(() =>
+            {
+                var logger = LogFactory.Create("ToggleScheduler");
+                if (scheduler.InStandbyMode)
+                {
+                    scheduler.Start();
+                    logger.Information("Scheduler Start");
+                    Thread.Sleep(1000);
+                }
+                else
+                {
+                    logger.Information("Scheduler Stopping...");
+                    //停止 trigger
+                    scheduler.Standby().Wait();
+                    //等工作結束
+                    while (scheduler.GetCurrentlyExecutingJobs().Result.Count > 0)
+                        Thread.Sleep(100);
+                    logger.Information("Scheduler Stopped");
+                }
+
+                RefreshToggleSchedulerMenuItem();
+            });
         }
     }
 }
