@@ -12,10 +12,11 @@ namespace QuartzJobManager.Utility
     {
         public static ILogger Instance { get; internal set; }
 
-        public static ILogger Create<T>()
+        public static ILogger Create<T>() => Create(typeof(T).ToString());
+        public static ILogger Create(string moduleId)
         {
             var logger = Instance
-                .ForContext("ModuleId", typeof(T));
+                .ForContext("ModuleId", moduleId);
             return logger;
         }
     }
