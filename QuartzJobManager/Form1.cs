@@ -27,6 +27,7 @@ namespace QuartzJobManager
         const string ColNameJobStatus = "ColJobStatus";
         const string ColNameJobRunTime = "ColJobRunTime";
         const string ColNameJobPreviousFiredTime = "ColJobPreviousFiredTime";
+        const string ColNameJobNextFireTime = "ColJobNextFireTime";
 
         public Form1()
         {
@@ -170,6 +171,12 @@ namespace QuartzJobManager
             if (prevFiredTime.HasValue)
                 prevFiredTimeText = prevFiredTime.Value.LocalDateTime.ToString("yyyy/MM/dd HH:mm:ss");
             newRow.Cells[ColNameJobPreviousFiredTime].Value = prevFiredTimeText;
+
+            var nextFireTime = triggers.Min(t=>t.GetNextFireTimeUtc());
+            var nextFireTimeText = "NA";
+            if (nextFireTime.HasValue)
+                nextFireTimeText = nextFireTime.Value.LocalDateTime.ToString("yyyy/MM/dd HH:mm:ss");
+            newRow.Cells[ColNameJobNextFireTime].Value = nextFireTimeText;
         }
 
         private void InitializeJobViewer()
@@ -211,6 +218,10 @@ namespace QuartzJobManager
             var colPreviousFiredTime = generateTextColumn(ColNameJobPreviousFiredTime, "Prev Fired Time");
             colPreviousFiredTime.Width = 120;
             gv.Columns.Add(colPreviousFiredTime);
+
+            var colNextFireTime = generateTextColumn(ColNameJobNextFireTime, "Next Fire Time");
+            colNextFireTime.Width = 120;
+            gv.Columns.Add(colNextFireTime);
         }
 
         private void InitializeScanJobStatisticTask()
