@@ -21,6 +21,7 @@ namespace QuartzJobManager
     {
         private IScheduler Scheduler;
 
+        const string ColNameJobGroup = "ColJobGroup";
         const string ColNameJobKey = "ColJobKey";
         const string ColNameJobDescription = "ColJobDescription";
         const string ColNameJobStatus = "ColJobStatus";
@@ -159,6 +160,7 @@ namespace QuartzJobManager
             var scheduler = this.Scheduler;
 
             newRow.Tag = job;
+            newRow.Cells[ColNameJobGroup].Value = job.Key.Group;
             newRow.Cells[ColNameJobKey].Value = job.Key.Name;
             newRow.Cells[ColNameJobDescription].Value = job.Description;
 
@@ -188,6 +190,9 @@ namespace QuartzJobManager
                 };
                 return col;
             });
+
+            var colJobGroup = generateTextColumn(ColNameJobGroup, "Group");
+            gv.Columns.Add(colJobGroup);
 
             var colJobName = generateTextColumn(ColNameJobKey, "Job");
             gv.Columns.Add(colJobName);
