@@ -20,7 +20,6 @@ namespace QuartzJobManager
     public partial class Form1 : Form
     {
         private IScheduler Scheduler;
-        private readonly ILogger LogService;
 
         const string ColNameJobKey = "ColJobKey";
         const string ColNameJobDescription = "ColJobDescription";
@@ -34,9 +33,6 @@ namespace QuartzJobManager
 
             InitializeJobViewer();
 
-            var logger = LogFactory.Create<Form1>();
-            this.LogService = logger;
-
             InitializeQuartz();
 
             InitializeScanJobStatisticTask();
@@ -46,72 +42,6 @@ namespace QuartzJobManager
 
         private void InitializeMonitorJobTask()
         {
-            var runMonitor = new Action(() =>
-            {
-                var logger = LogFactory.Create("MonitorJobTas");
-                logger.Information("{ModuleId} init");
-
-                var scheduler = this.Scheduler;
-                var gv = this.dgvJobs;
-
-                var jobKeys = scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup()).Result;
-                var removeableJobKeys = new List<JobKey>(jobKeys);
-
-                var removeRows = new List<DataGridViewRow>();
-                foreach (DataGridViewRow grow in gv.Rows)
-                {
-                    var job = (IJobDetail)grow.Tag;
-
-                    if (removeableJobKeys.Contains(job.Key))
-                    {
-                        //update job
-                        job = scheduler.GetJobDetail(job.Key).Result;
-                        BindData(grow, job);
-                    }
-                    else
-                    {
-                        //remove job(add list)
-                        removeRows.Add(grow);
-                    }
-                    removeableJobKeys.Remove(job.Key);
-                }
-                //execute remove job
-                foreach (var removeRow in removeRows)
-                    gv.Rows.Remove(removeRow);
-
-                //add job
-                foreach (var jobKey in removeableJobKeys)
-                {
-                    gv.Rows.Add();
-                    int newRowIndex = gv.Rows.GetLastRow(DataGridViewElementStates.None);
-                    var newRow = gv.Rows[newRowIndex];
-                    var job = scheduler.GetJobDetail(jobKey).Result;
-                    BindData(newRow, job);
-                }
-
-                var executingJobs = scheduler.GetCurrentlyExecutingJobs().Result;
-                foreach (DataGridViewRow grow in gv.Rows)
-                {
-                    var job = (IJobDetail)grow.Tag;
-                    var executingJob = executingJobs.FirstOrDefault(j => j.JobDetail.Key == job.Key);
-
-                    var cellStatus = grow.Cells[ColNameJobStatus];
-                    var cellRunTime = grow.Cells[ColNameJobRunTime];
-
-                    if (executingJob != null)
-                    {
-                        cellStatus.Value = "Running";
-                        cellRunTime.Value = executingJob.JobRunTime.ToString(@"hh\:mm\:ss\.fff");
-                    }
-                    else if (scheduler.InStandbyMode)
-                        cellStatus.Value = "Paused";
-                    else
-                    {
-                        cellStatus.Value = "Idle";
-                    }
-                }
-            });
-
             //隨 Process 生死不特別處理
             Task.Factory.StartNew(() =>
             {
@@ -126,7 +56,7 @@ namespace QuartzJobManager
 
                     try
                     {
-                        this.Invoke(new MethodInvoker(runMonitor));
+                        this.Invoke(new MethodInvoker(MonitorJob));
                     }
                     catch (ObjectDisposedException)
                     {
@@ -140,6 +70,87 @@ namespace QuartzJobManager
                     Thread.Sleep(200);
                 }
             });
+        }
+        private void MonitorJob()
+        {
+            var logger = LogFactory.Create("MonitorJobTas");
+            logger.Information("{ModuleId} init");
+
+            var scheduler = this.Scheduler;
+            var gv = this.dgvJobs;
+
+            var jobKeys = scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup()).Result;
+            var removeableJobKeys = new List<JobKey>(jobKeys);
+
+            var removeRows = new List<DataGridViewRow>();
+            foreach (DataGridViewRow grow in gv.Rows)
+            {
+                var job = (IJobDetail)grow.Tag;
+
+                if (removeableJobKeys.Contains(job.Key))
+                {
+                    //update job
+                    job = scheduler.GetJobDetail(job.Key).Result;
+                    BindData(grow, job);
+                }
+                else
+                {
+                    //remove job(add list)
+                    removeRows.Add(grow);
+                }
+                removeableJobKeys.Remove(job.Key);
+            }
+            //execute remove job
+            foreach (var removeRow in removeRows)
+                gv.Rows.Remove(removeRow);
+
+            //add job
+            foreach (var jobKey in removeableJobKeys)
+            {
+                gv.Rows.Add();
+                int newRowIndex = gv.Rows.GetLastRow(DataGridViewElementStates.None);
+                var newRow = gv.Rows[newRowIndex];
+                var job = scheduler.GetJobDetail(jobKey).Result;
+                BindData(newRow, job);
+            }
+
+            var executingJobs = scheduler.GetCurrentlyExecutingJobs().Result;
+            foreach (DataGridViewRow grow in gv.Rows)
+            {
+                var job = (IJobDetail)grow.Tag;
+                var executingJob = executingJobs.FirstOrDefault(j => j.JobDetail.Key == job.Key);
+
+                var cellStatus = grow.Cells[ColNameJobStatus];
+                var cellRunTime = grow.Cells[ColNameJobRunTime];
+
+                if (executingJob != null)
+                {
+                    cellRunTime.Value = executingJob.JobRunTime.ToString(@"hh\:mm\:ss\.fff");
+                    if (IsJobPaused(scheduler, job))
+                        cellStatus.Value = "Running -> Paused";
+                    else if (scheduler.InStandbyMode)
+                        cellStatus.Value = "Running -> Standby";
+                    else
+                        cellStatus.Value = "Running";
+                }
+                else if (IsJobPaused(scheduler, job))
+                    cellStatus.Value = "Paused";
+                else if (scheduler.InStandbyMode)
+                    cellStatus.Value = "Standby";
+                else
+                    cellStatus.Value = "Idle";
+            }
+        }
+        private bool IsJobPaused(IScheduler scheduler, IJobDetail job)
+        {
+            var triggers = scheduler.GetTriggersOfJob(job.Key).Result;
+            foreach (var trigger in triggers)
+            {
+                var triggerState = scheduler.GetTriggerState(trigger.Key).Result;
+                if (triggerState == TriggerState.Paused)
+                    return true;
+            }
+            return false;
         }
 
         private void BindData(DataGridViewRow newRow, IJobDetail job)
@@ -170,9 +181,11 @@ namespace QuartzJobManager
 
             var generateTextColumn = new Func<string, string, DataGridViewTextBoxColumn>((name, title) =>
             {
-                var col = new DataGridViewTextBoxColumn();
-                col.Name = name;
-                col.HeaderText = title;
+                var col = new DataGridViewTextBoxColumn
+                {
+                    Name = name,
+                    HeaderText = title
+                };
                 return col;
             });
 
@@ -325,6 +338,53 @@ namespace QuartzJobManager
 
                 RefreshToggleSchedulerMenuItem();
             });
+        }
+
+        private void dgvJobs_CellMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            var scheduler = this.Scheduler;
+
+            if (e.Button != MouseButtons.Right) return;
+            if (e.RowIndex < 0 || e.ColumnIndex < 0) return;
+
+            var gv = (DataGridView)sender;
+            var grow = gv.Rows[e.RowIndex];
+            var job = (IJobDetail)grow.Tag;
+
+            cmuItemResumeJob.Visible = false;
+            cmuItemPauseJob.Visible = false;
+
+            if (IsJobPaused(scheduler, job))
+            {
+                cmuItemResumeJob.Tag = job;
+                cmuItemResumeJob.Visible = true;
+                cmuJobs.Show(Cursor.Position);
+            }
+            else
+            {
+                cmuItemPauseJob.Tag = job;
+                cmuItemPauseJob.Visible = true;
+                cmuJobs.Show(Cursor.Position);
+            }
+        }
+
+        private void cmuItemResumeJob_Click(object sender, EventArgs e)
+        {
+            var scheduler = this.Scheduler;
+
+            var cmuItem = (ToolStripMenuItem)sender;
+            var job = (IJobDetail)cmuItem.Tag;
+
+            scheduler.ResumeJob(job.Key);
+        }
+        private void cmuItemPauseJob_Click(object sender, EventArgs e)
+        {
+            var scheduler = this.Scheduler;
+
+            var cmuItem = (ToolStripMenuItem)sender;
+            var job = (IJobDetail)cmuItem.Tag;
+
+            scheduler.PauseJob(job.Key);
         }
     }
 }

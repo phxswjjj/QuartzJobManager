@@ -28,14 +28,19 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.tslJobStatistic = new System.Windows.Forms.ToolStripStatusLabel();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.tsmToggleScheduler = new System.Windows.Forms.ToolStripMenuItem();
             this.dgvJobs = new System.Windows.Forms.DataGridView();
+            this.cmuJobs = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.cmuItemResumeJob = new System.Windows.Forms.ToolStripMenuItem();
+            this.cmuItemPauseJob = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvJobs)).BeginInit();
+            this.cmuJobs.SuspendLayout();
             this.SuspendLayout();
             // 
             // statusStrip1
@@ -82,6 +87,29 @@
             this.dgvJobs.RowTemplate.Height = 24;
             this.dgvJobs.Size = new System.Drawing.Size(776, 398);
             this.dgvJobs.TabIndex = 2;
+            this.dgvJobs.CellMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.dgvJobs_CellMouseClick);
+            // 
+            // cmuJobs
+            // 
+            this.cmuJobs.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.cmuItemResumeJob,
+            this.cmuItemPauseJob});
+            this.cmuJobs.Name = "cmuJobs";
+            this.cmuJobs.Size = new System.Drawing.Size(120, 48);
+            // 
+            // cmuItemResumeJob
+            // 
+            this.cmuItemResumeJob.Name = "cmuItemResumeJob";
+            this.cmuItemResumeJob.Size = new System.Drawing.Size(119, 22);
+            this.cmuItemResumeJob.Text = "Resume";
+            this.cmuItemResumeJob.Click += new System.EventHandler(this.cmuItemResumeJob_Click);
+            // 
+            // cmuItemPauseJob
+            // 
+            this.cmuItemPauseJob.Name = "cmuItemPauseJob";
+            this.cmuItemPauseJob.Size = new System.Drawing.Size(119, 22);
+            this.cmuItemPauseJob.Text = "Pause";
+            this.cmuItemPauseJob.Click += new System.EventHandler(this.cmuItemPauseJob_Click);
             // 
             // Form1
             // 
@@ -100,6 +128,7 @@
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvJobs)).EndInit();
+            this.cmuJobs.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -112,6 +141,9 @@
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem tsmToggleScheduler;
         private System.Windows.Forms.DataGridView dgvJobs;
+        private System.Windows.Forms.ContextMenuStrip cmuJobs;
+        private System.Windows.Forms.ToolStripMenuItem cmuItemResumeJob;
+        private System.Windows.Forms.ToolStripMenuItem cmuItemPauseJob;
     }
 }
 
