@@ -29,6 +29,9 @@ namespace QuartzJobManager
         const string ColNameJobPreviousFiredTime = "ColJobPreviousFiredTime";
         const string ColNameJobNextFireTime = "ColJobNextFireTime";
 
+        private readonly CancellationTokenSource FormClosingSignal;
+        private readonly List<Task> Tasks = new List<Task>();
+
         public Form1()
         {
             InitializeComponent();
@@ -37,6 +40,9 @@ namespace QuartzJobManager
 
             InitializeQuartz();
 
+            var formClosingSignal = new CancellationTokenSource();
+            this.FormClosingSignal = formClosingSignal; ;
+
             InitializeScanJobStatisticTask();
 
             InitializeMonitorJobTask();
@@ -44,9 +50,14 @@ namespace QuartzJobManager
 
         private void InitializeMonitorJobTask()
         {
+            var token = this.FormClosingSignal.Token;
+
             //隨 Process 生死不特別處理
-            Task.Factory.StartNew(() =>
+            var task = Task.Factory.StartNew(() =>
             {
+                var logger = LogFactory.Create("MonitorJobTask");
+                logger.Information("{ModuleId} init");
+
                 while (true)
                 {
                     //延遲啟動，否則 Invoke 不好處理
@@ -54,6 +65,12 @@ namespace QuartzJobManager
                     {
                         Thread.Sleep(100);
                         continue;
+                    }
+
+                    if (token.IsCancellationRequested)
+                    {
+                        logger.Information("{ModuleId} Cancel");
+                        return;
                     }
 
                     try
@@ -71,13 +88,11 @@ namespace QuartzJobManager
 
                     Thread.Sleep(200);
                 }
-            });
+            }, token);
+            this.Tasks.Add(task);
         }
         private void MonitorJob()
         {
-            var logger = LogFactory.Create("MonitorJobTas");
-            logger.Information("{ModuleId} init");
-
             var scheduler = this.Scheduler;
             var gv = this.dgvJobs;
 
@@ -172,7 +187,7 @@ namespace QuartzJobManager
                 prevFiredTimeText = prevFiredTime.Value.LocalDateTime.ToString("yyyy/MM/dd HH:mm:ss");
             newRow.Cells[ColNameJobPreviousFiredTime].Value = prevFiredTimeText;
 
-            var nextFireTime = triggers.Min(t=>t.GetNextFireTimeUtc());
+            var nextFireTime = triggers.Min(t => t.GetNextFireTimeUtc());
             var nextFireTimeText = "NA";
             if (nextFireTime.HasValue)
                 nextFireTimeText = nextFireTime.Value.LocalDateTime.ToString("yyyy/MM/dd HH:mm:ss");
@@ -226,8 +241,10 @@ namespace QuartzJobManager
 
         private void InitializeScanJobStatisticTask()
         {
+            var token = this.FormClosingSignal.Token;
+
             //隨 Process 生死不特別處理
-            Task.Factory.StartNew(() =>
+            var task = Task.Factory.StartNew(() =>
             {
                 var logger = LogFactory.Create("ScanJobStatisticTask");
                 logger.Information("{ModuleId} init");
@@ -236,6 +253,12 @@ namespace QuartzJobManager
 
                 while (true)
                 {
+                    if (token.IsCancellationRequested)
+                    {
+                        logger.Information("{ModuleId} Cancel");
+                        return;
+                    }
+
                     var jobKeys = scheduler.GetJobKeys(GroupMatcher<JobKey>.AnyGroup()).Result;
                     var totalJobs = jobKeys.Count;
 
@@ -246,7 +269,8 @@ namespace QuartzJobManager
 
                     Thread.Sleep(200);
                 }
-            });
+            }, token);
+            this.Tasks.Add(task);
         }
 
         private void InitializeQuartz()
@@ -401,6 +425,16 @@ namespace QuartzJobManager
             var job = (IJobDetail)cmuItem.Tag;
 
             scheduler.PauseJob(job.Key);
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            var logger = LogFactory.Create<Form1>();
+            logger.Information("{ModuleId} Closing Send Cancel");
+            this.FormClosingSignal.Cancel();
+            this.Tasks.ForEach(t => t.Wait());
+            logger.Information("{ModuleId} Canceled");
+            this.FormClosingSignal.Dispose();
         }
     }
 }
