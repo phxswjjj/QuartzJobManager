@@ -353,6 +353,45 @@ namespace QuartzJobManager
                     Thread.Sleep(1000);
                 }
                 else
+                    SchedulerStandyby(scheduler, logger).Wait();
+
+                RefreshToggleSchedulerMenuItem();
+            });
+        }
+
+        private void tsmCloseApp_Click(object sender, EventArgs e)
+        {
+            //要關閉時禁用所有功能
+            menuStrip1.Enabled = false;
+            dgvJobs.Enabled = false;
+            tsmToggleScheduler.Visible = false;
+            tsmCloseApp.Text = "Closing...";
+
+            Task.Run(() =>
+            {
+                var logger = LogFactory.Create<Form1>();
+                var scheduler = this.Scheduler;
+
+                SchedulerStandyby(this.Scheduler, logger).Wait();
+
+                logger.Information("{ModuleId} Closing Send Cancel");
+                this.FormClosingSignal.Cancel();
+
+                this.RunningTasks.ForEach(t => t.Wait(1000));
+                logger.Information("{ModuleId} Canceled");
+                this.FormClosingSignal.Dispose();
+
+                this.Invoke(new MethodInvoker(() =>
+                {
+                    this.Close();
+                }));
+            });
+        }
+        private Task SchedulerStandyby(IScheduler scheduler, ILogger logger)
+        {
+            return Task.Run(() =>
+            {
+                if (scheduler.IsStarted && !scheduler.InStandbyMode)
                 {
                     logger.Information("Scheduler Standby...");
                     //停止 trigger
@@ -362,38 +401,7 @@ namespace QuartzJobManager
                         Thread.Sleep(100);
                     logger.Information("Scheduler Standbyed");
                 }
-
-                RefreshToggleSchedulerMenuItem();
             });
-        }
-
-        private void tsmCloseApp_Click(object sender, EventArgs e)
-        {
-            //要關閉時禁用所有功能
-            this.Enabled = false;
-
-            var logger = LogFactory.Create<Form1>();
-            var scheduler = this.Scheduler;
-
-            logger.Information("{ModuleId} Closing Send Cancel");
-            this.FormClosingSignal.Cancel();
-
-            if (this.Scheduler.IsStarted && !this.Scheduler.InStandbyMode)
-            {
-                logger.Information("Scheduler Standby...");
-                //停止 trigger
-                scheduler.Standby().Wait();
-                //等工作結束
-                while (scheduler.GetCurrentlyExecutingJobs().Result.Count > 0)
-                    Thread.Sleep(100);
-                logger.Information("Scheduler Standbyed");
-            }
-
-            this.RunningTasks.ForEach(t => t.Wait(1000));
-            logger.Information("{ModuleId} Canceled");
-            this.FormClosingSignal.Dispose();
-
-            this.Close();
         }
 
         private void RefreshToggleSchedulerMenuItem()
