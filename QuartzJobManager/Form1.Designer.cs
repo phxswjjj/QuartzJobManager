@@ -37,6 +37,7 @@
             this.cmuJobs = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.cmuItemResumeJob = new System.Windows.Forms.ToolStripMenuItem();
             this.cmuItemPauseJob = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmCloseApp = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvJobs)).BeginInit();
@@ -62,7 +63,8 @@
             // menuStrip1
             // 
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsmToggleScheduler});
+            this.tsmToggleScheduler,
+            this.tsmCloseApp});
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Size = new System.Drawing.Size(800, 24);
@@ -111,6 +113,13 @@
             this.cmuItemPauseJob.Text = "Pause";
             this.cmuItemPauseJob.Click += new System.EventHandler(this.cmuItemPauseJob_Click);
             // 
+            // tsmCloseApp
+            // 
+            this.tsmCloseApp.Name = "tsmCloseApp";
+            this.tsmCloseApp.Size = new System.Drawing.Size(50, 20);
+            this.tsmCloseApp.Text = "Close";
+            this.tsmCloseApp.Click += new System.EventHandler(this.tsmCloseApp_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -122,7 +131,6 @@
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "Form1";
             this.Text = "Form1";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
@@ -145,6 +153,7 @@
         private System.Windows.Forms.ContextMenuStrip cmuJobs;
         private System.Windows.Forms.ToolStripMenuItem cmuItemResumeJob;
         private System.Windows.Forms.ToolStripMenuItem cmuItemPauseJob;
+        private System.Windows.Forms.ToolStripMenuItem tsmCloseApp;
     }
 }
 

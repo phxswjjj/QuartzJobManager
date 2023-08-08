@@ -30,7 +30,7 @@ namespace QuartzJobManager
         const string ColNameJobNextFireTime = "ColJobNextFireTime";
 
         private readonly CancellationTokenSource FormClosingSignal;
-        private readonly List<Task> Tasks = new List<Task>();
+        private readonly List<Task> RunningTasks = new List<Task>();
 
         public Form1()
         {
@@ -48,6 +48,7 @@ namespace QuartzJobManager
             InitializeMonitorJobTask();
         }
 
+        #region 初始化
         private void InitializeMonitorJobTask()
         {
             var token = this.FormClosingSignal.Token;
@@ -60,17 +61,17 @@ namespace QuartzJobManager
 
                 while (true)
                 {
+                    if (token.IsCancellationRequested)
+                    {
+                        logger.Information("{ModuleId} Cancel");
+                        return;
+                    }
+
                     //延遲啟動，否則 Invoke 不好處理
                     if (!this.InvokeRequired)
                     {
                         Thread.Sleep(100);
                         continue;
-                    }
-
-                    if (token.IsCancellationRequested)
-                    {
-                        logger.Information("{ModuleId} Cancel");
-                        return;
                     }
 
                     try
@@ -89,7 +90,7 @@ namespace QuartzJobManager
                     Thread.Sleep(200);
                 }
             }, token);
-            this.Tasks.Add(task);
+            this.RunningTasks.Add(task);
         }
         private void MonitorJob()
         {
@@ -270,7 +271,7 @@ namespace QuartzJobManager
                     Thread.Sleep(200);
                 }
             }, token);
-            this.Tasks.Add(task);
+            this.RunningTasks.Add(task);
         }
 
         private void InitializeQuartz()
@@ -321,6 +322,7 @@ namespace QuartzJobManager
 
             this.Scheduler = scheduler;
         }
+        #endregion
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -329,32 +331,17 @@ namespace QuartzJobManager
             RefreshToggleSchedulerMenuItem();
         }
 
-        private void RefreshToggleSchedulerMenuItem()
-        {
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new MethodInvoker(RefreshToggleSchedulerMenuItem));
-                return;
-            }
-
-            var scheduler = this.Scheduler;
-            if (scheduler.InStandbyMode)
-                tsmToggleScheduler.Text = "Start";
-            else
-                tsmToggleScheduler.Text = "Stop";
-
-            tsmToggleScheduler.Enabled = true;
-        }
-
+        #region 主選單
         private void tsmToggleScheduler_Click(object sender, EventArgs e)
         {
-            tsmToggleScheduler.Enabled = false;
+            //主選單控制 scheduler 必須鎖住
+            menuStrip1.Enabled = false;
 
             var scheduler = this.Scheduler;
             if (scheduler.InStandbyMode)
                 tsmToggleScheduler.Text = "Starting...";
             else
-                tsmToggleScheduler.Text = "Stopping...";
+                tsmToggleScheduler.Text = "Standby...";
 
             Task.Run(() =>
             {
@@ -367,18 +354,74 @@ namespace QuartzJobManager
                 }
                 else
                 {
-                    logger.Information("Scheduler Stopping...");
+                    logger.Information("Scheduler Standby...");
                     //停止 trigger
                     scheduler.Standby().Wait();
                     //等工作結束
                     while (scheduler.GetCurrentlyExecutingJobs().Result.Count > 0)
                         Thread.Sleep(100);
-                    logger.Information("Scheduler Stopped");
+                    logger.Information("Scheduler Standbyed");
                 }
 
                 RefreshToggleSchedulerMenuItem();
             });
         }
+
+        private void tsmCloseApp_Click(object sender, EventArgs e)
+        {
+            //要關閉時禁用所有功能
+            this.Enabled = false;
+
+            var logger = LogFactory.Create<Form1>();
+            var scheduler = this.Scheduler;
+
+            logger.Information("{ModuleId} Closing Send Cancel");
+            this.FormClosingSignal.Cancel();
+
+            if (this.Scheduler.IsStarted && !this.Scheduler.InStandbyMode)
+            {
+                logger.Information("Scheduler Standby...");
+                //停止 trigger
+                scheduler.Standby().Wait();
+                //等工作結束
+                while (scheduler.GetCurrentlyExecutingJobs().Result.Count > 0)
+                    Thread.Sleep(100);
+                logger.Information("Scheduler Standbyed");
+            }
+
+            this.RunningTasks.ForEach(t => t.Wait(1000));
+            logger.Information("{ModuleId} Canceled");
+            this.FormClosingSignal.Dispose();
+
+            this.Close();
+        }
+
+        private void RefreshToggleSchedulerMenuItem()
+        {
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new MethodInvoker(RefreshToggleSchedulerMenuItem));
+                return;
+            }
+
+            var scheduler = this.Scheduler;
+            if (!scheduler.IsStarted)
+                tsmToggleScheduler.Text = "Start";
+            else if (!scheduler.InStandbyMode)
+                tsmToggleScheduler.Text = "Standby";
+            else
+            {
+                //剛啟動 trigger 還沒執行時 InStandbyMode=true，等待一段時間再確認一次
+                Thread.Sleep(200);
+                if (scheduler.InStandbyMode)
+                    tsmToggleScheduler.Text = "Start";
+                else
+                    tsmToggleScheduler.Text = "Standby";
+            }
+
+            menuStrip1.Enabled = true;
+        }
+        #endregion
 
         private void dgvJobs_CellMouseClick(object sender, DataGridViewCellMouseEventArgs e)
         {
@@ -408,6 +451,7 @@ namespace QuartzJobManager
             }
         }
 
+        #region 功能選單
         private void cmuItemResumeJob_Click(object sender, EventArgs e)
         {
             var scheduler = this.Scheduler;
@@ -426,15 +470,6 @@ namespace QuartzJobManager
 
             scheduler.PauseJob(job.Key);
         }
-
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            var logger = LogFactory.Create<Form1>();
-            logger.Information("{ModuleId} Closing Send Cancel");
-            this.FormClosingSignal.Cancel();
-            this.Tasks.ForEach(t => t.Wait());
-            logger.Information("{ModuleId} Canceled");
-            this.FormClosingSignal.Dispose();
-        }
+        #endregion
     }
 }
