@@ -6,6 +6,9 @@
 			<group>Load XML</group>
 			<description>My example job</description>
 			<job-type>QuartzJobManager.Jobs.Job1, QuartzJobManager</job-type>
+			<!--durable/recover 必須成對出現，否則 job 無效，原因不明-->
+			<durable>true</durable>
+			<recover>false</recover>
 		</job>
 		<trigger>
 			<cron>
@@ -14,6 +17,24 @@
 				<job-name>XmlJob1</job-name>
 				<job-group>Load XML</job-group>
 				<cron-expression>0 */3 * ? * * *</cron-expression>
+			</cron>
+		</trigger>
+
+		<job>
+			<name>XmlJob2</name>
+			<group>Load XML</group>
+			<description>My example job2</description>
+			<job-type>QuartzJobManager.Jobs.Job1, QuartzJobManager</job-type>
+			<durable>true</durable>
+			<recover>false</recover>
+		</job>
+		<trigger>
+			<cron>
+				<name>every5min</name>
+				<group>XML</group>
+				<job-name>XmlJob2</job-name>
+				<job-group>Load XML</job-group>
+				<cron-expression>0 */5 * ? * * *</cron-expression>
 			</cron>
 		</trigger>
 	</schedule>

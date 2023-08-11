@@ -33,11 +33,12 @@
             this.tslJobStatistic = new System.Windows.Forms.ToolStripStatusLabel();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.tsmToggleScheduler = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmCloseApp = new System.Windows.Forms.ToolStripMenuItem();
             this.dgvJobs = new System.Windows.Forms.DataGridView();
             this.cmuJobs = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.cmuItemResumeJob = new System.Windows.Forms.ToolStripMenuItem();
             this.cmuItemPauseJob = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsmCloseApp = new System.Windows.Forms.ToolStripMenuItem();
+            this.cmuItemExecuteJob = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dgvJobs)).BeginInit();
@@ -78,6 +79,13 @@
             this.tsmToggleScheduler.Text = "Start";
             this.tsmToggleScheduler.Click += new System.EventHandler(this.tsmToggleScheduler_Click);
             // 
+            // tsmCloseApp
+            // 
+            this.tsmCloseApp.Name = "tsmCloseApp";
+            this.tsmCloseApp.Size = new System.Drawing.Size(50, 20);
+            this.tsmCloseApp.Text = "Close";
+            this.tsmCloseApp.Click += new System.EventHandler(this.tsmCloseApp_Click);
+            // 
             // dgvJobs
             // 
             this.dgvJobs.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -95,30 +103,31 @@
             // 
             this.cmuJobs.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.cmuItemResumeJob,
-            this.cmuItemPauseJob});
+            this.cmuItemPauseJob,
+            this.cmuItemExecuteJob});
             this.cmuJobs.Name = "cmuJobs";
-            this.cmuJobs.Size = new System.Drawing.Size(120, 48);
+            this.cmuJobs.Size = new System.Drawing.Size(120, 70);
             // 
             // cmuItemResumeJob
             // 
             this.cmuItemResumeJob.Name = "cmuItemResumeJob";
-            this.cmuItemResumeJob.Size = new System.Drawing.Size(119, 22);
+            this.cmuItemResumeJob.Size = new System.Drawing.Size(180, 22);
             this.cmuItemResumeJob.Text = "Resume";
             this.cmuItemResumeJob.Click += new System.EventHandler(this.cmuItemResumeJob_Click);
             // 
             // cmuItemPauseJob
             // 
             this.cmuItemPauseJob.Name = "cmuItemPauseJob";
-            this.cmuItemPauseJob.Size = new System.Drawing.Size(119, 22);
+            this.cmuItemPauseJob.Size = new System.Drawing.Size(180, 22);
             this.cmuItemPauseJob.Text = "Pause";
             this.cmuItemPauseJob.Click += new System.EventHandler(this.cmuItemPauseJob_Click);
             // 
-            // tsmCloseApp
+            // cmuItemExecuteJob
             // 
-            this.tsmCloseApp.Name = "tsmCloseApp";
-            this.tsmCloseApp.Size = new System.Drawing.Size(50, 20);
-            this.tsmCloseApp.Text = "Close";
-            this.tsmCloseApp.Click += new System.EventHandler(this.tsmCloseApp_Click);
+            this.cmuItemExecuteJob.Name = "cmuItemExecuteJob";
+            this.cmuItemExecuteJob.Size = new System.Drawing.Size(119, 22);
+            this.cmuItemExecuteJob.Text = "Execute";
+            this.cmuItemExecuteJob.Click += new System.EventHandler(this.tsuItemExecuteJob_Click);
             // 
             // Form1
             // 
@@ -154,6 +163,7 @@
         private System.Windows.Forms.ToolStripMenuItem cmuItemResumeJob;
         private System.Windows.Forms.ToolStripMenuItem cmuItemPauseJob;
         private System.Windows.Forms.ToolStripMenuItem tsmCloseApp;
+        private System.Windows.Forms.ToolStripMenuItem cmuItemExecuteJob;
     }
 }
 

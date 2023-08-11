@@ -442,21 +442,38 @@ namespace QuartzJobManager
             var grow = gv.Rows[e.RowIndex];
             var job = (IJobDetail)grow.Tag;
 
+            var isShowMenu = false;
             cmuItemResumeJob.Visible = false;
             cmuItemPauseJob.Visible = false;
+            cmuItemExecuteJob.Visible = false;
+
+            if (!IsJobRunning(scheduler, job))
+            {
+                cmuItemExecuteJob.Tag = job;
+                cmuItemExecuteJob.Visible = true;
+                isShowMenu = true;
+            }
 
             if (IsJobPaused(scheduler, job))
             {
                 cmuItemResumeJob.Tag = job;
                 cmuItemResumeJob.Visible = true;
-                cmuJobs.Show(Cursor.Position);
+                isShowMenu = true;
             }
             else
             {
                 cmuItemPauseJob.Tag = job;
                 cmuItemPauseJob.Visible = true;
-                cmuJobs.Show(Cursor.Position);
+                isShowMenu = true;
             }
+
+            if (isShowMenu)
+                cmuJobs.Show(Cursor.Position);
+        }
+        private bool IsJobRunning(IScheduler scheduler, IJobDetail job)
+        {
+            var executingJobs = scheduler.GetCurrentlyExecutingJobs().Result;
+            return executingJobs.Any(j => j.JobDetail.Key == job.Key);
         }
 
         #region 功能選單
@@ -477,6 +494,18 @@ namespace QuartzJobManager
             var job = (IJobDetail)cmuItem.Tag;
 
             scheduler.PauseJob(job.Key);
+        }
+
+        private void tsuItemExecuteJob_Click(object sender, EventArgs e)
+        {
+            var scheduler = this.Scheduler;
+
+            var cmuItem = (ToolStripMenuItem)sender;
+            var job = (IJobDetail)cmuItem.Tag;
+            if (IsJobRunning(scheduler, job))
+                return;
+
+            scheduler.TriggerJob(job.Key).Wait();
         }
         #endregion
     }
