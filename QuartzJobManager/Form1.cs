@@ -10,6 +10,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -204,23 +205,36 @@ namespace QuartzJobManager
                 .Select(t => t.GetNextFireTimeUtc())
                 .Where(d => d.HasValue).Min();
             var nextFireTimeText = "NA";
-            var isNextFireTimePast = false;
+            var isNextFireTimeNear = false;
             if (nextFireTime.HasValue)
             {
                 nextFireTimeText = nextFireTime.Value.LocalDateTime.ToString("yyyy/MM/dd HH:mm:ss");
-                if (nextFireTime.Value <= DateTime.Now)
+                var nextFireTimeDiff = (DateTime.Now - nextFireTime.Value).Duration();
+                if (nextFireTimeDiff.TotalSeconds <= 10)
                 {
-                    isNextFireTimePast = true;
-                    cellNextFireTime.Style.BackColor = Color.Lime;
+                    isNextFireTimeNear = true;
+                    //closer to 1 is the closest next fire time
+                    var nearRatio = 1 - nextFireTimeDiff.TotalSeconds / 10d;
+                    var toColor = Color.Lime;
+                    var fromColor = Color.White;
+                    cellNextFireTime.Style.BackColor = GetGradientColor(fromColor, toColor, nearRatio);
                     cellNextFireTime.Style.ForeColor = GetForeColorFromBackColor(cellNextFireTime.Style.BackColor);
                 }
             }
-            if (!isNextFireTimePast)
+            if (!isNextFireTimeNear)
             {
                 cellNextFireTime.Style.BackColor = default(Color);
                 cellNextFireTime.Style.ForeColor = default(Color);
             }
             cellNextFireTime.Value = nextFireTimeText;
+        }
+
+        private Color GetGradientColor(Color fromColor, Color toColor, double nearRatio)
+        {
+            var rDiff = (int)((toColor.R - fromColor.R) * nearRatio);
+            var gDiff = (int)((toColor.G - fromColor.G) * nearRatio);
+            var bDiff = (int)((toColor.B - fromColor.B) * nearRatio);
+            return Color.FromArgb(fromColor.R + rDiff, fromColor.G + gDiff, fromColor.B + bDiff);
         }
 
         private void InitializeJobViewer()
