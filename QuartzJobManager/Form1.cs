@@ -141,6 +141,9 @@ namespace QuartzJobManager
                 var cellStatus = grow.Cells[ColNameJobStatus];
                 var cellRunTime = grow.Cells[ColNameJobRunTime];
 
+                cellRunTime.Style.BackColor = Color.Empty;
+                cellRunTime.Style.ForeColor = Color.Empty;
+
                 if (executingJob != null)
                 {
                     cellRunTime.Value = executingJob.JobRunTime.ToString(@"hh\:mm\:ss\.fff");
@@ -150,6 +153,9 @@ namespace QuartzJobManager
                         cellStatus.Value = "Running -> Standby";
                     else
                         cellStatus.Value = "Running";
+
+                    cellRunTime.Style.BackColor = Color.Lime;
+                    cellRunTime.Style.ForeColor = GetForeColorFromBackColor(cellRunTime.Style.BackColor);
                 }
                 else if (IsJobPaused(scheduler, job))
                     cellStatus.Value = "Paused";
@@ -159,7 +165,12 @@ namespace QuartzJobManager
                     cellStatus.Value = "Idle";
             }
         }
-        private bool IsJobPaused(IScheduler scheduler, IJobDetail job)
+        private static Color GetForeColorFromBackColor(Color backColor)
+        {
+            var x = 0.2126 * backColor.R + 0.7152 * backColor.G + 0.0722 * backColor.B;
+            return x > 0.179 ? Color.Black : Color.White;
+        }
+        private static bool IsJobPaused(IScheduler scheduler, IJobDetail job)
         {
             var triggers = scheduler.GetTriggersOfJob(job.Key).Result;
             foreach (var trigger in triggers)
@@ -188,11 +199,28 @@ namespace QuartzJobManager
                 prevFiredTimeText = prevFiredTime.Value.LocalDateTime.ToString("yyyy/MM/dd HH:mm:ss");
             newRow.Cells[ColNameJobPreviousFiredTime].Value = prevFiredTimeText;
 
-            var nextFireTime = triggers.Min(t => t.GetNextFireTimeUtc());
+            var cellNextFireTime = newRow.Cells[ColNameJobNextFireTime];
+            var nextFireTime = triggers.Where(t => scheduler.GetTriggerState(t.Key).Result != TriggerState.Paused)
+                .Select(t => t.GetNextFireTimeUtc())
+                .Where(d => d.HasValue).Min();
             var nextFireTimeText = "NA";
+            var isNextFireTimePast = false;
             if (nextFireTime.HasValue)
+            {
                 nextFireTimeText = nextFireTime.Value.LocalDateTime.ToString("yyyy/MM/dd HH:mm:ss");
-            newRow.Cells[ColNameJobNextFireTime].Value = nextFireTimeText;
+                if (nextFireTime.Value <= DateTime.Now)
+                {
+                    isNextFireTimePast = true;
+                    cellNextFireTime.Style.BackColor = Color.Lime;
+                    cellNextFireTime.Style.ForeColor = GetForeColorFromBackColor(cellNextFireTime.Style.BackColor);
+                }
+            }
+            if (!isNextFireTimePast)
+            {
+                cellNextFireTime.Style.BackColor = default(Color);
+                cellNextFireTime.Style.ForeColor = default(Color);
+            }
+            cellNextFireTime.Value = nextFireTimeText;
         }
 
         private void InitializeJobViewer()
@@ -414,17 +442,17 @@ namespace QuartzJobManager
 
             var scheduler = this.Scheduler;
             if (!scheduler.IsStarted)
-                tsmToggleScheduler.Text = "Start";
+                tsmToggleScheduler.Text = "Scheduler Start";
             else if (!scheduler.InStandbyMode)
-                tsmToggleScheduler.Text = "Standby";
+                tsmToggleScheduler.Text = "Scheduler Standby";
             else
             {
                 //剛啟動 trigger 還沒執行時 InStandbyMode=true，等待一段時間再確認一次
                 Thread.Sleep(200);
                 if (scheduler.InStandbyMode)
-                    tsmToggleScheduler.Text = "Start";
+                    tsmToggleScheduler.Text = "Scheduler Start";
                 else
-                    tsmToggleScheduler.Text = "Standby";
+                    tsmToggleScheduler.Text = "Scheduler Standby";
             }
 
             menuStrip1.Enabled = true;

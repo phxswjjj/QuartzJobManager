@@ -75,15 +75,15 @@
             // tsmToggleScheduler
             // 
             this.tsmToggleScheduler.Name = "tsmToggleScheduler";
-            this.tsmToggleScheduler.Size = new System.Drawing.Size(45, 20);
-            this.tsmToggleScheduler.Text = "Start";
+            this.tsmToggleScheduler.Size = new System.Drawing.Size(104, 20);
+            this.tsmToggleScheduler.Text = "Scheduler Start";
             this.tsmToggleScheduler.Click += new System.EventHandler(this.tsmToggleScheduler_Click);
             // 
             // tsmCloseApp
             // 
             this.tsmCloseApp.Name = "tsmCloseApp";
-            this.tsmCloseApp.Size = new System.Drawing.Size(50, 20);
-            this.tsmCloseApp.Text = "Close";
+            this.tsmCloseApp.Size = new System.Drawing.Size(87, 20);
+            this.tsmCloseApp.Text = "Close Safely";
             this.tsmCloseApp.Click += new System.EventHandler(this.tsmCloseApp_Click);
             // 
             // dgvJobs
